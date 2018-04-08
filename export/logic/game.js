@@ -160,7 +160,14 @@ var GameModule;
         Game.prototype.continueTurnProcess = function () {
             switch (this.flag.currentProcess) {
                 case MJProtocols.Process.XingPai:
-                    this.xingPai();
+                    {
+                        if (this.flag.nextSeat !== -1) {
+                            this.changeTurnSeat(this.flag.nextSeat);
+                        }
+                        else {
+                        }
+                    }
+                    ;
                     break;
             }
         };
@@ -335,6 +342,7 @@ var GameModule;
             for (var i in this.flag.arbitralActions) {
                 if (!this.flag.arbitralActions[i])
                     continue;
+                var seat = parseInt(i);
                 var hand = this.hands[i];
                 var action = this.flag.arbitralActions[i];
                 if (action.type === MJProtocols.ActionType.Da) {
@@ -344,6 +352,8 @@ var GameModule;
                         // TODO
                     }
                     else {
+                        var nextSeat = this.getNextSeat(seat);
+                        this.flag.nextSeat = nextSeat;
                     }
                 }
                 break;

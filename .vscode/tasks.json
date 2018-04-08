@@ -1,0 +1,14 @@
+{
+	"version": "0.1.0",
+	"tasks": [
+		{
+			"taskName": "Compile",
+			"command": "sh",
+			"isShellCommand": true,
+			"args": ["compile.sh"],
+			"showOutput": "always",
+			"problemMatcher": "$tsc",
+			"isBuildCommand": true
+		}
+	]
+}

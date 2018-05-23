@@ -15,7 +15,7 @@ module DaZhongRuleModule {
             super();
             this.name = '大众规则';
             this.seatNum = 4;
-            this.handCardsNum = 16;
+            this.handCardsNum = 13;
             this.Processs = [
                 MJProtocols.Process.FaPai,
                 MJProtocols.Process.XingPai,

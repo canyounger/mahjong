@@ -14,9 +14,12 @@ var BotsModule;
             this.seat = seat;
         }
         Bots.prototype.onAction = function (action) {
-            console.log('seat %s => actions %s', this.seat, JSON.stringify(action));
             if (action.type === MJProtocols.ActionType.ZhuaPai) {
+                console.log('seat %s => holdCards %s length %d', this.seat, JSON.stringify(action.list[0]), action.list[0].length);
                 this.holdCards = action.list[0];
+            }
+            else {
+                console.log('seat %s => actions %s', this.seat, JSON.stringify(action));
             }
         };
         Bots.prototype.onAnswer = function (actions) {

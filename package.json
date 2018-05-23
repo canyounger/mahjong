@@ -1,7 +1,7 @@
 {
   "name": "mahjong",
   "version": "1.0.1",
-  "description": "mahjong",
+  "description": "mahjong majiang",
   "main": "index.js",
   "scripts": {
     "test": "node ./export/example/example.js"

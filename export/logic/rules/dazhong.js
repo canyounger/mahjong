@@ -28,7 +28,7 @@ var DaZhongRuleModule;
             var _this = _super.call(this) || this;
             _this.name = '大众规则';
             _this.seatNum = 4;
-            _this.handCardsNum = 16;
+            _this.handCardsNum = 13;
             _this.Processs = [
                 MJProtocols.Process.FaPai,
                 MJProtocols.Process.XingPai,

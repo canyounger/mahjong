@@ -11,16 +11,19 @@ function main() {
         var bots = new BotsModule.Bots(rule, seat);
         botses.push(bots);
     }
+    var count = 0;
     game.init(function (actions) {
-        console.log('action');
         for (var seat in actions) {
             if (!actions[seat])
                 continue;
             botses[seat].onAction(actions[seat]);
         }
-        game.onNext();
+        count++;
+        if (count < 3) {
+            game.onNext();
+        }
+        // game.onNext();
     }, function (actions) {
-        console.log('answer');
         for (var i in actions) {
             if (!actions[i])
                 continue;
@@ -28,6 +31,10 @@ function main() {
             var seat = parseInt(i);
             game.onAnswer(seat, action);
         }
+        // count ++;
+        // if(count < 2){
+        //     game.onNext();
+        // }
     });
     game.onStart();
     setInterval(function () {

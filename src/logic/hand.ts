@@ -51,6 +51,14 @@ module HandModule {
             this.huFlag = huFlag;
         }
 
+        public setGuoShuiBuHu(huFlag: MJProtocols.HuFlag) {
+            // TODO
+        }
+
+        public setGuoShuiBuPeng(card: number) {
+            // TODO
+        }
+
         public getHuFlag(huFlag: MJProtocols.HuFlag): MJProtocols.HuFlag {
             return _.cloneDeep(huFlag);
         }
@@ -61,80 +69,94 @@ module HandModule {
         }
 
         /** 查找主动杠  暗杠 加杠*/
-        public searchInitiativeGang(): MJProtocols.Action {
+        public searchInitiativeGang(actions: MJProtocols.Action[]) {
             let anGangList = CardUtils.searchAnGangCardsList(this.holdCards);
             let jiaGangList = CardUtils.searchJiaGangCardsList(this.holdCards, this.cutGroups);
             let gangList = anGangList.concat(jiaGangList);
             if (gangList.length) {
                 let action: MJProtocols.Action = { type: MJProtocols.ActionType.Gang, list: gangList };
-                return action;
+                actions.push(action);
             }
-            return null;
         }
 
         /** 查找主动胡  自摸*/
-        public searchInitiativeHu(huFlag: MJProtocols.HuFlag): MJProtocols.Action {
+        public searchInitiativeHu(huFlag: MJProtocols.HuFlag, actions: MJProtocols.Action[]) {
             let holdCardsCountMap = CardUtils.getCardCountMap(this.holdCards);
             if (CardUtils.checkHu(holdCardsCountMap)) {
                 let action: MJProtocols.Action = { type: MJProtocols.ActionType.Hu };
-                return action;
+                actions.push(action);
             }
-            return null;
         }
 
         /** 查找主动打*/
-        public searchInitiativeDa(): MJProtocols.Action {
+        public searchInitiativeDa(actions: MJProtocols.Action[]) {
             let daCards = CardUtils.searchDaCards(this.holdCards, this.queColor);
             let action: MJProtocols.Action = { type: MJProtocols.ActionType.Da, list: [daCards] };
-            return action;
+            actions.push(action);
         }
 
         /** 查找被动杠  点杠 */
-        public searchPassiveGang(card: number): MJProtocols.Action {
+        public searchPassiveGang(card: number, actions: MJProtocols.Action[]) {
             let gangList = CardUtils.searchJiaGangCardsList(this.holdCards, this.cutGroups);
             if (gangList.length) {
                 let action: MJProtocols.Action = { type: MJProtocols.ActionType.Gang, list: gangList };
-                return action;
+                actions.push(action);
             }
-            return null;
         }
 
 
         /** 查找被动杠  点杠 */
-        public searchPassiveChi(card: number): MJProtocols.Action {
+        public searchPassivePeng(card: number, actions: MJProtocols.Action[]) {
+            // 过水不碰
             let gangList = CardUtils.searchJiaGangCardsList(this.holdCards, this.cutGroups);
             if (gangList.length) {
-                let action: MJProtocols.Action = { type: MJProtocols.ActionType.Gang, list: gangList };
-                return action;
+                let action: MJProtocols.Action = { type: MJProtocols.ActionType.Peng, list: gangList };
+                actions.push(action);
             }
-            return null;
+        }
+
+
+        /** 查找被动杠  点杠 */
+        public searchPassiveChi(card: number, nextSeat: MJProtocols.Seat, actions: MJProtocols.Action[]) {
+            if (this.rule.rulesMaps[MJProtocols.RuleType.XiaJiaChi] && this.seat === nextSeat) {
+                let gangList = CardUtils.searchJiaGangCardsList(this.holdCards, this.cutGroups);
+                if (gangList.length) {
+                    let action: MJProtocols.Action = { type: MJProtocols.ActionType.Gang, list: gangList };
+                    actions.push(action);
+                }
+            }
         }
 
         /** 查找被动杠  点杠 */
-        public searchPassiveHu(card: number, huFlag: MJProtocols.HuFlag, type: MJProtocols.ActionType): MJProtocols.Action {
-            if (type === MJProtocols.ActionType.DianPaoHu) this.searchDianPao(card, huFlag);
-            else if (type === MJProtocols.ActionType.QiangGangHu) this.searchQiangGang(card, huFlag);
-            return null;
+        public searchPassiveHu(card: number, huFlag: MJProtocols.HuFlag, type: MJProtocols.ActionType, actions: MJProtocols.Action[]) {
+            // TODO  过水不胡
+            if (type === MJProtocols.ActionType.DianPaoHu) this.searchDianPaoHu(card, huFlag, actions);
+            else if (type === MJProtocols.ActionType.QiangGangHu) this.searchQiangGangHu(card, huFlag, actions);
+        }
+
+        public searchPassiveGuo(actions: MJProtocols.Action[]) {
+            actions.push({ type: MJProtocols.ActionType.Guo }); // 可以过
         }
 
         /** 查找被动胡  点炮*/
-        private searchDianPao(card: number, huFlag: MJProtocols.HuFlag): MJProtocols.Action {
+        private searchDianPaoHu(card: number, huFlag: MJProtocols.HuFlag, actions: MJProtocols.Action[]) {
             let holdCardsCountMap = CardUtils.getCardCountMap(this.holdCards);
+            // TODO  过水不胡
             if (CardUtils.checkHu(holdCardsCountMap)) {
                 let action: MJProtocols.Action = { type: MJProtocols.ActionType.Hu };
-                return action;
+                actions.push(action);
             }
-            return null;
         }
 
-        /** 查找主动胡  点炮*/
-        private searchQiangGang(card: number, huFlag: MJProtocols.HuFlag): MJProtocols.Action {
-            let holdCardsCountMap = CardUtils.getCardCountMap(this.holdCards);
-            if (CardUtils.checkHu(holdCardsCountMap)) {
-                let action: MJProtocols.Action = { type: MJProtocols.ActionType.Hu };
-                return action;
+        /** 查找主动胡  抢杠*/
+        private searchQiangGangHu(card: number, huFlag: MJProtocols.HuFlag, actions: MJProtocols.Action[]) {
+            if (this.rule.rulesMaps[MJProtocols.RuleType.QiangGangHu]) {
+                let holdCardsCountMap = CardUtils.getCardCountMap(this.holdCards);
+                if (CardUtils.checkHu(holdCardsCountMap)) {
+                    let action: MJProtocols.Action = { type: MJProtocols.ActionType.Hu };
+                    actions.push(action);
+                }
             }
-            return null;
         }
 
     }

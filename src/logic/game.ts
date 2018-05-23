@@ -150,6 +150,24 @@ module GameModule {
             return new Error('noInActions');
         }
 
+        private searchGuoShui(seat: MJProtocols.Seat, action: MJProtocols.Action) {
+            let questionActions = this.flag.questionActions[seat];
+            let hasHu = false; let hasPeng = false;
+            for (let i = 0; i < questionActions.length; i++) {
+                let questionAction = questionActions[i];
+                if (questionAction.type === MJProtocols.ActionType.Hu) hasHu = true;
+                else if (questionAction.type === MJProtocols.ActionType.Peng) hasPeng = true;
+            }
+            let hand = this.hands[seat];
+            if (hasPeng && action.type !== MJProtocols.ActionType.Peng) {
+                hand.setGuoShuiBuPeng(this.flag.currentCard);
+            }
+            if (hasHu && action.type !== MJProtocols.ActionType.Hu) {
+                let huFlag = this.getHuFlag();
+                hand.setGuoShuiBuHu(hand.getHuFlag(huFlag));
+            }
+        }
+
         protected xingPai() {
             this.flag.isPassive = !this.flag.isPassive;
             this.event.emit('answer', this.flag.questionActions);
@@ -160,9 +178,9 @@ module GameModule {
             this.flag.currentCards = _.cloneDeep(this.rule.allCards);
             for (let i = 0; i < this.rule.seatNum; i++) {
                 let seat = (i + this.dealer) % this.rule.seatNum;
-                let isDealer = i === this.dealer;
+                let isDealer = seat === this.dealer;
                 let num = isDealer ? this.rule.handCardsNum + 1 : this.rule.handCardsNum;
-                let handCards = this.flag.currentCards.splice(0, num - 1);
+                let handCards = this.flag.currentCards.splice(0, num);
                 if (isDealer) this.hands[seat].setTurnCard(handCards[0]);
                 let action: MJProtocols.Action = {
                     type: MJProtocols.ActionType.ZhuaPai,
@@ -181,12 +199,15 @@ module GameModule {
             let err = this.checkAnswerLegal(seat, action);
             console.log('on answer', err ? err.message : "", seat, JSON.stringify(action));
             if (err) return err;
+            this.searchGuoShui(seat, action);
             if (this.checkFinishAnswer()) {
+                let arbitralActions = _.cloneDeep(this.flag.arbitralActions);
                 if (this.flag.isPassive) {
-
+                    this.handlePassiveAction();
                 } else {
-
+                    this.handleInitiativeAction();
                 }
+                this.event.emit('action', arbitralActions);
             }
             // 检查 是否切换 处理流
             // 检查 是否切换 动作玩家
@@ -195,6 +216,7 @@ module GameModule {
         /** 切换流程 */
         private changeTurnProcess(Process: MJProtocols.Process) {
             if (this.flag.currentProcess === Process) return;
+            this.flag.nextProcess = MJProtocols.Process.None;
             this.flag.currentProcess = Process;
             switch (this.flag.currentProcess) {
                 case MJProtocols.Process.FaPai: this.faPai(); break;
@@ -213,8 +235,10 @@ module GameModule {
                 case MJProtocols.Process.XingPai: {
                     if (this.flag.nextSeat !== -1) {
                         this.changeTurnSeat(this.flag.nextSeat);
+                        this.searchInitiativeActions();
+                        this.xingPai();
                     } else {
-
+                        this.xingPai();
                     }
                 }; break;
             }
@@ -223,6 +247,7 @@ module GameModule {
         private changeTurnSeat(seat: MJProtocols.Seat) {
             this.flag.currentSeat = seat;
             this.flag.currentCard = this.hands[seat].turnCard;
+            this.flag.nextSeat = -1;
         }
 
         private getNextSeat(seat: MJProtocols.Seat) {
@@ -320,15 +345,9 @@ module GameModule {
                 let seat = actionSeats[i];
                 let hand = this.hands[seat];
                 let actions: MJProtocols.Action[] = [];
-                // 杠
-                let gangAction = hand.searchInitiativeGang();
-                if (gangAction !== null) actions.push(gangAction);
-                // 胡
-                let huAction = hand.searchInitiativeHu(hand.getHuFlag(huFlag));
-                if (huAction !== null) actions.push(huAction);
-                // 打
-                let daAction = hand.searchInitiativeDa();
-                actions.push(daAction);
+                hand.searchInitiativeGang(actions);// 杠
+                hand.searchInitiativeHu(hand.getHuFlag(huFlag), actions);// 胡
+                hand.searchInitiativeDa(actions);// 打
                 this.flag.questionActions[seat] = actions;
             }
             this.searchQuestionLevel();
@@ -346,30 +365,21 @@ module GameModule {
                 let seat = actionSeats[i];
                 let actions: MJProtocols.Action[] = [];
                 let hand = this.hands[seat];
-                if (action.type === MJProtocols.ActionType.Da) {  // 
+                if (action.type === MJProtocols.ActionType.Da) {  // 检查打
                     let card = action.list[0][0];
-                    // 杠
-                    let gangAction = hand.searchPassiveGang(card);
-                    if (gangAction !== null) actions.push(gangAction);
-                    // 胡
-                    let huAction = hand.searchPassiveHu(card, hand.getHuFlag(huFlag), MJProtocols.ActionType.DianPaoHu);
-                    if (huAction !== null) actions.push(huAction);
-                    // 下家吃
-                    if (this.rule.rulesMaps[MJProtocols.RuleType.XiaJiaChi] && seat === nextSeat) {
-                        let chiAction = hand.searchPassiveChi(card);
-                        if (chiAction !== null) actions.push(chiAction);
-                    }
+                    hand.searchPassiveChi(card, nextSeat, actions);// 吃
+                    hand.searchPassivePeng(card, actions); // 碰
+                    hand.searchPassiveGang(card, actions);// 杠
+                    let type = MJProtocols.ActionType.DianPaoHu;
+                    hand.searchPassiveHu(card, hand.getHuFlag(huFlag), type, actions); // 胡
                 }
-                else if (action.type === MJProtocols.ActionType.JiaGang) { // 抢杠处理
+                else if (action.type === MJProtocols.ActionType.JiaGang) { // 检查加杠
                     let card = action.list[0][0];
-                    if (this.rule.rulesMaps[MJProtocols.RuleType.QiangGangHu]) {
-                        let huAction = hand.searchPassiveHu(card, hand.getHuFlag(huFlag),
-                            MJProtocols.ActionType.QiangGangHu);
-                        if (huAction !== null) actions.push(huAction);
-                    }
+                    let type = MJProtocols.ActionType.QiangGangHu;
+                    hand.searchPassiveHu(card, hand.getHuFlag(huFlag), type, actions);
                 }
                 if (actions.length > 0) {
-                    actions.push({ type: MJProtocols.ActionType.Guo }); // 可以过
+                    hand.searchPassiveGuo(actions);
                     this.flag.questionActions[seat] = actions;
                     flag = true;
                 }
@@ -383,7 +393,28 @@ module GameModule {
 
         /** 处理主动玩家的动作 */
         private handleInitiativeAction() {
-            let arbitralActions = _.cloneDeep(this.flag.arbitralActions);
+            for (let i in this.flag.arbitralActions) {
+                if (!this.flag.arbitralActions[i]) continue;
+                let seat = parseInt(i);
+                let hand = this.hands[i];
+                let action = this.flag.arbitralActions[i];
+                if (action.type === MJProtocols.ActionType.Da) {
+                    let card = action.list[0][0];
+                    hand.daPai(card);
+                    this.flag.currentAction = action;
+                    if (this.searchPassiveActions()) {
+                        // TODO
+                    } else {
+                        let nextSeat = this.getNextSeat(seat);
+                        this.flag.nextSeat = nextSeat;
+                    }
+                }
+                break;
+            }
+        }
+
+        /** 处理被动玩家的动作 */
+        private handlePassiveAction() {
             for (let i in this.flag.arbitralActions) {
                 if (!this.flag.arbitralActions[i]) continue;
                 let seat = parseInt(i);
@@ -401,12 +432,6 @@ module GameModule {
                 }
                 break;
             }
-            this.event.emit('action', arbitralActions);
-        }
-
-        /** 处理被动玩家的动作 */
-        private handlePassiveAction() {
-
         }
         /** 触发开始 */
         private getNextProcess() {

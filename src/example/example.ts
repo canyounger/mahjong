@@ -10,23 +10,31 @@ function main() {
         let bots = new BotsModule.Bots(rule, seat);
         botses.push(bots);
     }
+    let count = 0;
     game.init(
         function (actions: MJProtocols.Action[]) {
-            console.log('action');
             for (let seat in actions) {
                 if (!actions[seat]) continue;
                 botses[seat].onAction(actions[seat]);
             }
-            game.onNext();
+            count ++;
+            if(count < 3){
+                game.onNext();
+            }
+            // game.onNext();
         },
         function (actions: MJProtocols.Action[][]) {
-            console.log('answer');
             for (let i in actions) {
                 if (!actions[i]) continue;
                 let action = botses[i].onAnswer(actions[i]);
                 let seat = parseInt(i);
                 game.onAnswer(seat, action);
             }
+            // count ++;
+            // if(count < 2){
+            //     game.onNext();
+            // }
+            
         });
     game.onStart();
     setInterval(function () {

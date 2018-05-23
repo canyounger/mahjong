@@ -16,7 +16,7 @@ var CardUtils;
     CardUtils.removeCards = removeCards;
     /** 获取牌的数字值 */
     function getCardNumber(card) {
-        var value = card.color << 8 | card.value << 4 | card.index;
+        var value = card.color << 8 | card.index << 4 | card.value;
         return value;
     }
     CardUtils.getCardNumber = getCardNumber;
@@ -39,7 +39,7 @@ var CardUtils;
         var searchs = {};
         for (var i = 0; i < holdCards.length; i++) {
             var card = holdCards[i];
-            var value = card & 0xF0F;
+            var value = card & 0xFF0;
             if (!searchs[value])
                 searchs[value] = [];
             searchs[value].push(card);
@@ -59,7 +59,7 @@ var CardUtils;
         for (var k = 0; k < cutGroups.length; k++) {
             var group = cutGroups[k];
             var card = group.cards[0];
-            var value = card & 0xF0F;
+            var value = card & 0xFF0;
             if (group.type === MJProtocols.GroupType.Ke) {
                 if (!searchs[value])
                     searchs[value] = [];
@@ -68,7 +68,7 @@ var CardUtils;
         }
         for (var i = 0; i < holdCards.length; i++) {
             var card = holdCards[i];
-            var value = card & 0xF0F;
+            var value = card & 0xFF0;
             if (!searchs[value])
                 continue;
             searchs[value].push(card);
@@ -84,7 +84,7 @@ var CardUtils;
     function getCardCountMap(holdCards) {
         var countMap = {};
         for (var i in holdCards) {
-            var card = holdCards[i] & 0xF0F; // 去掉索引
+            var card = holdCards[i] & 0xFF0; // 去掉索引
             if (!countMap[card])
                 countMap[card] = [];
             countMap[card].push(holdCards[i]);
@@ -133,7 +133,7 @@ var CardUtils;
         //分开匹配 A-2,A-1,A
         var matched = true;
         // var v = selected - 1 % 9;  //1-9 -> 0-8
-        var v = selected & 0x0F0;
+        var v = selected & 0x00F;
         // console.log(v)
         // console.log(getShow(selected), 'matchSingle', v);
         if (v < 3) {
@@ -141,7 +141,7 @@ var CardUtils;
         }
         else {
             for (var i = 0; i < 3; ++i) {
-                var t = (selected & 0xF0F) | ((selected & 0x0F0) - 2 + i);
+                var t = (selected & 0xFF0) | ((selected & 0x00F) - 2 + i);
                 var cc = countMap[t];
                 if (cc == null) {
                     matched = false;
@@ -155,13 +155,13 @@ var CardUtils;
         }
         //匹配成功，扣除相应数值
         if (matched) {
-            countMap[(selected & 0xF0F) | ((selected & 0x0F0) - 2)]--;
-            countMap[(selected & 0xF0F) | ((selected & 0x0F0) - 1)]--;
-            countMap[(selected & 0xF0F) | ((selected & 0x0F0) - 0)]--;
+            countMap[(selected & 0xFF0) | ((selected & 0x00F) - 2)]--;
+            countMap[(selected & 0xFF0) | ((selected & 0x00F) - 1)]--;
+            countMap[(selected & 0xFF0) | ((selected & 0x00F) - 0)]--;
             var ret = checkSingle(holds, countMap);
-            countMap[(selected & 0xF0F) | ((selected & 0x0F0) - 2)]++;
-            countMap[(selected & 0xF0F) | ((selected & 0x0F0) - 1)]++;
-            countMap[(selected & 0xF0F) | ((selected & 0x0F0) - 0)]++;
+            countMap[(selected & 0xFF0) | ((selected & 0x00F) - 2)]++;
+            countMap[(selected & 0xFF0) | ((selected & 0x00F) - 1)]++;
+            countMap[(selected & 0xFF0) | ((selected & 0x00F) - 0)]++;
             if (ret == true)
                 return true;
         }
@@ -172,7 +172,7 @@ var CardUtils;
         }
         else {
             for (var i = 0; i < 3; ++i) {
-                var t = (selected & 0xF0F) | ((selected & 0x0F0) - 1 + i);
+                var t = (selected & 0xFF0) | ((selected & 0x00F) - 1 + i);
                 var cc = countMap[t];
                 if (cc == null) {
                     matched = false;
@@ -186,13 +186,13 @@ var CardUtils;
         }
         //匹配成功，扣除相应数值
         if (matched) {
-            countMap[(selected & 0xF0F) | ((selected & 0x0F0) - 1)]--;
-            countMap[(selected & 0xF0F) | ((selected & 0x0F0))]--;
-            countMap[(selected & 0xF0F) | ((selected & 0x0F0) + 1)]--;
+            countMap[(selected & 0xFF0) | ((selected & 0x00F) - 1)]--;
+            countMap[(selected & 0xFF0) | ((selected & 0x00F))]--;
+            countMap[(selected & 0xFF0) | ((selected & 0x00F) + 1)]--;
             var ret = checkSingle(holds, countMap);
-            countMap[(selected & 0xF0F) | ((selected & 0x0F0) - 1)]++;
-            countMap[(selected & 0xF0F) | ((selected & 0x0F0))]++;
-            countMap[(selected & 0xF0F) | ((selected & 0x0F0) + 1)]++;
+            countMap[(selected & 0xFF0) | ((selected & 0x00F) - 1)]++;
+            countMap[(selected & 0xFF0) | ((selected & 0x00F))]++;
+            countMap[(selected & 0xFF0) | ((selected & 0x00F) + 1)]++;
             if (ret == true)
                 return true;
         }
@@ -203,7 +203,7 @@ var CardUtils;
         }
         else {
             for (var i = 0; i < 3; ++i) {
-                var t = (selected & 0xF0F) | ((selected & 0x0F0) + i);
+                var t = (selected & 0xFF0) | ((selected & 0x00F) + i);
                 var cc = countMap[t];
                 if (cc == null) {
                     matched = false;
@@ -217,13 +217,13 @@ var CardUtils;
         }
         //匹配成功，扣除相应数值
         if (matched) {
-            countMap[(selected & 0xF0F) | ((selected & 0x0F0) + 0)]--;
-            countMap[(selected & 0xF0F) | ((selected & 0x0F0) + 1)]--;
-            countMap[(selected & 0xF0F) | ((selected & 0x0F0) + 2)]--;
+            countMap[(selected & 0xFF0) | ((selected & 0x00F) + 0)]--;
+            countMap[(selected & 0xFF0) | ((selected & 0x00F) + 1)]--;
+            countMap[(selected & 0xFF0) | ((selected & 0x00F) + 2)]--;
             var ret = checkSingle(holds, countMap);
-            countMap[(selected & 0xF0F) | ((selected & 0x0F0) + 0)]++;
-            countMap[(selected & 0xF0F) | ((selected & 0x0F0) + 1)]++;
-            countMap[(selected & 0xF0F) | ((selected & 0x0F0) + 2)]++;
+            countMap[(selected & 0xFF0) | ((selected & 0x00F) + 0)]++;
+            countMap[(selected & 0xFF0) | ((selected & 0x00F) + 1)]++;
+            countMap[(selected & 0xFF0) | ((selected & 0x00F) + 2)]++;
             if (ret == true)
                 return true;
         }
